@@ -33,13 +33,25 @@
 		const host = "localhost";
 		const port = 3000;
 
-		const socket = new WebSocket(`ws://${host}:${port}`);
 		const map = L.map("map").setView([0, 0], 2);
 		const markerLayer = L.layerGroup().addTo(map);
 		const circleLayer = L.layerGroup().addTo(map);
-		const speedKmh = 1; // Speed in km/h for circle expansion
+		const speedKmh = 50; // Speed in km/h for circle expansion
+		let socket;
 
-		const min = 1440;
+		let url = "";
+		fetch("https://pinattutaro.github.io/dcon_kumap/url.txt")
+			.then(res => res.text())
+			.then(text => {
+				url = text.trim();
+				socket = new WebSocket(`wss://${url.replace(/^https?:\/\//, '')}`);
+				connect();
+			})
+			.catch(err => {
+				console.error("Error fetching URL:", err);
+			});
+
+		const min = 720;
 
 		const connect = () => {
 			socket.onopen = () => {
@@ -111,16 +123,17 @@
 
 							const marker = L.marker([e.lat, e.lon])
 								.addTo(markerLayer)
-								.bindPopup(popupContainer, { closeOnClick: false , autoClose: false })
+								.bindPopup(popupContainer, { closeOnClick: false , autoClose: false, maxWidth: 500, minWidth: 200, maxWidth: 300 })
 								.openPopup();
 
 							// --- Expanding Circle ---
 							const radius = elapsedHours * speedKmh * 1000; // radius in meters
+							console.log(((min - (elapsedMs / (1000 * 60))) / min)**2);
 							L.circle([e.lat, e.lon], {
 								radius: radius,
 								color: 'red',
 								weight: 1,
-								opacity: ((min - (elapsedMs / (1000 * 60))) / min)**2,
+								fillOpacity: 0.5*((min - (elapsedMs / (1000 * 60))) / min)**2,
 								creationTime: creationTime 
 							}).addTo(circleLayer);
 						});
@@ -143,8 +156,6 @@
 		map.on('locationerror', function (e) {
 			alert(e.message);
 		});
-
-		connect();
 
 		// Update circles every second
 		// setInterval(() => {
