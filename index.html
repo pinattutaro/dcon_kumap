@@ -44,6 +44,7 @@
 			.then(res => res.text())
 			.then(text => {
 				url = text.trim();
+				console.log("Fetched URL:", url);
 				socket = new WebSocket(`wss://${url.replace(/^https?:\/\//, '')}`);
 				connect();
 			})
@@ -52,6 +53,78 @@
 			});
 
 		const min = 720;
+
+		const addPin = (e) => {
+			const creationTime = Date.parse(e.time);
+			const elapsedMs = Date.now() - creationTime;
+			const elapsedHours = elapsedMs / (1000 * 60 * 60);
+
+			const timeText = (() => {
+				if (elapsedMs < 60000) return "now";
+				const minutes = Math.floor(elapsedMs / 60000);
+				const hours = Math.floor(minutes / 60);
+				if (hours > 0) {
+					return `${hours}h${minutes % 60}m ago`;
+				}
+				return `${minutes}m ago`;
+			})();
+
+
+			// --- Marker and Popup ---
+			const popupContainer = document.createElement('div');
+			const timeDiv = document.createElement('div');
+			timeDiv.textContent = timeText;
+			timeDiv.style.cursor = 'pointer';
+
+			const imgElement = document.createElement('img');
+			const imageUrl = new URL(e.image_path.replace(/\\/g, '/'), url);
+			imgElement.src = imageUrl.href;
+			imgElement.alt = 'location image';
+			imgElement.className = 'popup-image';
+			imgElement.style.display = 'none';
+			imgElement.style.cursor = 'pointer';
+
+			imgElement.onerror = () => {
+				console.error("Image load error:", imgElement.src);
+				imgElement.alt = 'Image load error';
+				if (marker.getPopup().isOpen()) marker.getPopup().update();
+			}
+
+			timeDiv.addEventListener('click', () => {
+				timeDiv.style.display = 'none';
+				imgElement.style.display = 'block';
+				if (marker.getPopup().isOpen()) marker.getPopup().update();
+			});
+
+			imgElement.addEventListener('click', () => {
+				imgElement.style.display = 'none';
+				timeDiv.style.display = 'block';
+				if (marker.getPopup().isOpen()) marker.getPopup().update();
+			});
+			
+			imgElement.onload = () => {
+				if (marker.getPopup().isOpen()) marker.getPopup().update();
+			};
+
+			popupContainer.appendChild(timeDiv);
+			popupContainer.appendChild(imgElement);
+
+			const marker = L.marker([e.lat, e.lon])
+				.addTo(markerLayer)
+				.bindPopup(popupContainer, { closeOnClick: false , autoClose: false, maxWidth: 500, minWidth: 200, maxWidth: 300 })
+				.openPopup();
+
+			// --- Expanding Circle ---
+			const radius = elapsedHours * speedKmh * 1000; // radius in meters
+			console.log(((min - (elapsedMs / (1000 * 60))) / min)**2);
+			L.circle([e.lat, e.lon], {
+				radius: radius,
+				fillColor: 'red',
+				weight: 1,
+				fillOpacity: 0.5*((min - (elapsedMs / (1000 * 60))) / min)**2,
+				creationTime: creationTime 
+			}).addTo(circleLayer);
+		}
 
 		const connect = () => {
 			socket.onopen = () => {
@@ -74,69 +147,12 @@
 						markerLayer.clearLayers(); // Clear existing markers
 						circleLayer.clearLayers(); // Clear existing circles
 						data.data.forEach(e => {
-							const creationTime = Date.parse(e.time);
-							const elapsedMs = Date.now() - creationTime;
-							const elapsedHours = elapsedMs / (1000 * 60 * 60);
-
-							const timeText = (() => {
-								if (elapsedMs < 60000) return "now";
-								const minutes = Math.floor(elapsedMs / 60000);
-								const hours = Math.floor(minutes / 60);
-								if (hours > 0) {
-									return `${hours}h${minutes % 60}m ago`;
-								}
-								return `${minutes}m ago`;
-							})();
-
-
-							// --- Marker and Popup ---
-							const popupContainer = document.createElement('div');
-							const timeDiv = document.createElement('div');
-							timeDiv.textContent = timeText;
-							timeDiv.style.cursor = 'pointer';
-
-							const imgElement = document.createElement('img');
-							imgElement.src = e.image_path.replace(/\\/g, '/');
-							imgElement.alt = 'location image';
-							imgElement.className = 'popup-image';
-							imgElement.style.display = 'none';
-							imgElement.style.cursor = 'pointer';
-
-							timeDiv.addEventListener('click', () => {
-								timeDiv.style.display = 'none';
-								imgElement.style.display = 'block';
-								if (marker.getPopup().isOpen()) marker.getPopup().update();
-							});
-
-							imgElement.addEventListener('click', () => {
-								imgElement.style.display = 'none';
-								timeDiv.style.display = 'block';
-								if (marker.getPopup().isOpen()) marker.getPopup().update();
-							});
-							
-							imgElement.onload = () => {
-                                if (marker.getPopup().isOpen()) marker.getPopup().update();
-                            };
-
-							popupContainer.appendChild(timeDiv);
-							popupContainer.appendChild(imgElement);
-
-							const marker = L.marker([e.lat, e.lon])
-								.addTo(markerLayer)
-								.bindPopup(popupContainer, { closeOnClick: false , autoClose: false, maxWidth: 500, minWidth: 200, maxWidth: 300 })
-								.openPopup();
-
-							// --- Expanding Circle ---
-							const radius = elapsedHours * speedKmh * 1000; // radius in meters
-							console.log(((min - (elapsedMs / (1000 * 60))) / min)**2);
-							L.circle([e.lat, e.lon], {
-								radius: radius,
-								color: 'red',
-								weight: 1,
-								fillOpacity: 0.5*((min - (elapsedMs / (1000 * 60))) / min)**2,
-								creationTime: creationTime 
-							}).addTo(circleLayer);
+							addPin(e);
 						});
+						break;
+					case "add": 
+						addPin(data.data);
+						break;
 				}
 			}
 
