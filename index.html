@@ -233,13 +233,15 @@
 				url = text.trim();
 				console.log("Fetched URL:", url);
 				socket = new WebSocket(`wss://${url.replace(/^https?:\/\//, '')}`);
+                // url = "http://localhost:3000";
+                // socket = new WebSocket("ws://localhost:3000");
 				connect();
 			})
 			.catch(err => {
 				console.error("Error fetching URL:", err);
 			});
 
-		const addPin = (e) => {
+		const addPin = async (e) => {
 			const creationTime = Date.parse(e.time);
 			const elapsedMs = Date.now() - creationTime;
 			const elapsedHours = elapsedMs / (1000 * 60 * 60);
@@ -262,10 +264,19 @@
 			timeDiv.style.cursor = 'pointer';
 
 			const imgElement = document.createElement('img');
-			// const imageUrl = new URL(e.image_path.replace(/\\/g, '/'), url);
-            const imageUrl = new URL(e.image_path, url);
-			imgElement.src = imageUrl.href;
-			imgElement.alt = 'location image';
+            console.log(e.image_path);
+
+            const r = await fetch(`${url}/image/${e.image_path}`, {
+                method: 'GET',
+                headers: { 
+                    "ngrok-skip-browser-warning": "true" ,
+                }
+            });
+            const blob = await r.blob();
+            const imageUrl = URL.createObjectURL(blob);
+
+            // const imageUrl = new URL(e.image_path, url);
+			            imgElement.src = imageUrl;			imgElement.alt = 'location image';
 			imgElement.className = 'popup-image';
 			imgElement.style.display = 'none';
 			imgElement.style.cursor = 'pointer';
