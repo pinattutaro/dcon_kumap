@@ -111,7 +111,7 @@
 
 			const marker = L.marker([e.lat, e.lon])
 				.addTo(markerLayer)
-				.bindPopup(popupContainer, { closeOnClick: false , autoClose: false, maxWidth: 500, minWidth: 200, maxWidth: 300 })
+				.bindPopup(popupContainer, { closeOnClick: false , autoClose: false, maxWidth: 300, minWidth: 50 })
 				.openPopup();
 
 			// --- Expanding Circle ---
@@ -168,6 +168,28 @@
 		}).addTo(map);
 
 		map.locate({ setView: true, maxZoom: 16 });
+
+		map.on('locationfound', function(e) {
+			console.log("Location found:", e.latlng);
+			const userLatLng = e.latlng;
+			let isInside = false;
+
+			circleLayer.getLayers().forEach(circle => {
+				const circleLatLng = circle.getLatLng();
+				const circleRadius = circle.getRadius();
+				const distance = map.distance(userLatLng, circleLatLng);
+
+				if (distance < circleRadius) {
+					isInside = true;
+				}
+			});
+
+			if (isInside) {
+				alert('現在地は円の中にあります。');
+			} else {
+				alert('現在地はどの円の中にもありません。');
+			}
+		});
 
 		map.on('locationerror', function (e) {
 			alert(e.message);

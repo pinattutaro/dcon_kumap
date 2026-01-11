@@ -4,6 +4,7 @@ const getURL = async () => {
     try {
         const res = await fetch("https://pinattutaro.github.io/dcon_kumap/url.txt");
         url = (await res.text()).trim();
+        // url = "http://localhost:3000"; // For local testing
     } catch (err) {
         console.error("Error fetching URL:", err);
     }
