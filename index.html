@@ -339,6 +339,7 @@
                 infos[1].children[0].innerHTML = "--:--";
                 infos[2].children[0].innerHTML = `現在、近くで熊の出没は確認されていません。`;
 
+                console.log(userLatLng);
                 if (!userLatLng) {
                     infos[2].children[0].innerHTML = `現在地が取得できません。`;
                     return;
@@ -369,8 +370,7 @@
 						data.data.forEach(e => {
 							addPin(e);
 						});
-						break;
-                        // announce();
+                        announce();
                         break;  
 					case "add": 
 						addPin(data.data);
