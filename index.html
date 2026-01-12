@@ -327,7 +327,21 @@
         const announce = () => {
             console.log("Announce called");
             const nearest = getNearest();
-            if (!nearest) return;
+
+            if (!nearest) {
+                console.log("No nearby circles found");
+                const infos = document.querySelector('.news').children;
+                infos[0].classList.remove('danger');
+                infos[1].children[0].innerHTML = "--:--";
+                infos[2].children[0].innerHTML = `現在、近くで熊の出没は確認されていません。`;
+
+                if (!userLatLng) {
+                    infos[2].children[0].innerHTML = `現在地が取得できません。`;
+                }
+
+                return;
+            };
+
             const {distance, creationTime, isBound} = nearest;
             // console.log(new Date(creationTime));
             const infos = document.querySelector('.news').children;
