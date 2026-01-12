@@ -325,6 +325,7 @@
 		}
 
         const announce = () => {
+            console.log("Announce called");
             const nearest = getNearest();
             if (!nearest) return;
             const {distance, creationTime, isBound} = nearest;
